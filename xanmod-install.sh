@@ -161,18 +161,16 @@ main()
     [ $? -ne 0 ] && red "添加源失败！" && exit 1
     apt update
     [ $? -ne 0 ] && red "更新源失败！" && exit 1
-    local temp_list="$(apt-cache depends "$install" | grep -i "Depends:" | awk '{print $2}')"
-    local temp
+    local temp_list=($(apt-cache depends "$install" | grep -i "Depends:" | awk '{print $2}'))
     local i
-    for ((i=$(echo "$temp_list" | awk -F , '{print NF}');i>0;i--))
+    for i in ${!temp_list[@]}
     do
-        temp="$(echo "$temp_list" | awk -F , "{print \$$i}" | awk '{print $1}')"
-        if [[ "$temp" =~ ^linux-headers-.*-xanmod ]]; then
-            install_headers_list+=("$temp")
-        elif [[ "$temp" =~ ^linux-image-.*-xanmod ]]; then
-            install_image_list+=("$temp")
-        elif [[ "$temp" =~ ^linux-modules-.*-xanmod ]]; then
-            install_modules_list+=("$temp")
+        if [[ "${temp_list[$i]}" =~ ^linux-headers-.*-xanmod ]]; then
+            install_headers_list+=("${temp_list[$i]}")
+        elif [[ "${temp_list[$i]}" =~ ^linux-image-.*-xanmod ]]; then
+            install_image_list+=("${temp_list[$i]}")
+        elif [[ "${temp_list[$i]}" =~ ^linux-modules-.*-xanmod ]]; then
+            install_modules_list+=("${temp_list[$i]}")
         fi
     done
     if [ ${#install_image_list[@]} -ne 1 ] || [ ${#install_modules_list[@]} -gt 1 ] || ([ $install_headers -eq 1 ] && [ ${#install_headers_list[@]} -ne 1 ]); then
