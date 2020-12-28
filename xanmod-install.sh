@@ -95,12 +95,10 @@ check_important_dependence_installed()
 
 remove_other_kernel()
 {
-    check_important_dependence_installed grub2-common
     yellow "卸载过程中如果弹出对话框，请选择NO！"
     yellow "卸载过程中如果弹出对话框，请选择NO！"
     yellow "卸载过程中如果弹出对话框，请选择NO！"
-    tyblue "按两次回车键以继续。。"
-    read -s
+    tyblue "按回车键以继续。。"
     read -s
     local kernel_list_image=($(dpkg --list | awk '{print $2}' | grep '^linux-image'))
     local kernel_list_modules=($(dpkg --list | awk '{print $2}' | grep '^linux-modules'))
@@ -150,15 +148,7 @@ remove_other_kernel()
         apt -y purge ${kernel_list_image[@]} ${kernel_list_modules[@]}
     fi
     [ $? -ne 0 ] && red "卸载失败！" && exit 1
-    yellow "接下来的过程中如果弹出对话框，请选择YES！"
-    yellow "接下来的过程中如果弹出对话框，请选择YES！"
-    yellow "接下来的过程中如果弹出对话框，请选择YES！"
-    tyblue "按两次回车键以继续。。"
-    read -s
-    read -s
-    apt -y purge grub-pc grub-gfxpayload-lists
-    [ $? -ne 0 ] && red "卸载失败！" && exit 1
-    update-grub
+    apt-mark manual "^grub"
 }
 
 main()
