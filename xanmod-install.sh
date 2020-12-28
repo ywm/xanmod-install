@@ -161,7 +161,7 @@ main()
     [ $? -ne 0 ] && red "添加源失败！" && exit 1
     apt update
     [ $? -ne 0 ] && red "更新源失败！" && exit 1
-    local temp_list="$(apt show "$install" | grep -i "^Depends:" | cut -d : -f 2)"
+    local temp_list="$(apt-cache depends "$install" | grep -i "Depends:" | awk '{print $2}')"
     local temp
     local i
     for ((i=$(echo "$temp_list" | awk -F , '{print NF}');i>0;i--))
