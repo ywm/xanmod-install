@@ -95,10 +95,12 @@ check_important_dependence_installed()
 
 remove_other_kernel()
 {
+    check_important_dependence_installed grub2-common
     yellow "卸载过程中弹出对话框，请选择NO！"
     yellow "卸载过程中弹出对话框，请选择NO！"
     yellow "卸载过程中弹出对话框，请选择NO！"
-    tyblue "按回车键继续。。"
+    tyblue "按两次回车键继续。。"
+    read -s
     read -s
     local kernel_list_image=($(dpkg --list | awk '{print $2}' | grep '^linux-image'))
     local kernel_list_modules=($(dpkg --list | awk '{print $2}' | grep '^linux-modules'))
@@ -147,6 +149,15 @@ remove_other_kernel()
     else
         apt -y purge ${kernel_list_image[@]} ${kernel_list_modules[@]}
     fi
+    [ $? -ne 0 ] && red "卸载失败！" && exit 1
+    yellow "接下来的过程中弹出对话框，请选择YES！"
+    yellow "接下来的过程中弹出对话框，请选择YES！"
+    yellow "接下来的过程中弹出对话框，请选择YES！"
+    tyblue "按两次回车键继续。。"
+    read -s
+    read -s
+    apt -y purge grub-pc grub-gfxpayload-lists
+    [ $? -ne 0 ] && red "卸载失败！" && exit 1
     update-grub
 }
 
@@ -155,8 +166,7 @@ main()
     menu
     check_mem
     check_important_dependence_installed gnupg1
-    check_important_dependence_installed grub2-common
-    echo 'deb https://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-kernel.list
+    echo 'deb http://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-kernel.list
     wget -qO - https://dl.xanmod.org/gpg.key | apt-key --keyring /etc/apt/trusted.gpg.d/xanmod-kernel.gpg add -
     [ $? -ne 0 ] && red "添加源失败！" && exit 1
     apt update
