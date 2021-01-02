@@ -39,6 +39,8 @@ if [ "$EUID" != "0" ]; then
     exit 1
 fi
 
+[[ -d "/proc/vz" ]] && red "Error: Your VPS is based on OpenVZ, which is not supported." && exit 1
+
 menu()
 {
     tyblue "===============安装xanmod内核==============="
@@ -156,6 +158,7 @@ main()
     menu
     check_mem
     check_important_dependence_installed gnupg1
+    check_important_dependence_installed ca-certificates ca-certificates
     echo 'deb http://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-kernel.list
     wget -qO - https://dl.xanmod.org/gpg.key | apt-key --keyring /etc/apt/trusted.gpg.d/xanmod-kernel.gpg add -
     [ $? -ne 0 ] && red "添加源失败！" && exit 1
