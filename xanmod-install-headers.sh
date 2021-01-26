@@ -4,24 +4,50 @@ install_headers=1
 #定义几个颜色
 purple()                           #基佬紫
 {
-    echo -e "\033[35;1m${@}\033[0m"
+    echo -e "\\033[35;1m${*}\\033[0m"
 }
 tyblue()                           #天依蓝
 {
-    echo -e "\033[36;1m${@}\033[0m"
+    echo -e "\\033[36;1m${*}\\033[0m"
 }
 green()                            #水鸭青
 {
-    echo -e "\033[32;1m${@}\033[0m"
+    echo -e "\\033[32;1m${*}\\033[0m"
 }
 yellow()                           #鸭屎黄
 {
-    echo -e "\033[33;1m${@}\033[0m"
+    echo -e "\\033[33;1m${*}\\033[0m"
 }
 red()                              #姨妈红
 {
-    echo -e "\033[31;1m${@}\033[0m"
+    echo -e "\\033[31;1m${*}\\033[0m"
 }
+#检查基本命令
+check_base_command()
+{
+    local i
+    local temp_command_list=('bash' 'true' 'false' 'exit' 'echo' 'test' 'free' 'sort' 'sed' 'awk' 'grep' 'cut' 'cd' 'rm' 'cp' 'mv' 'head' 'tail' 'uname' 'tr' 'md5sum' 'tar' 'cat' 'find' 'type' 'command' 'kill' 'pkill' 'wc' 'ls')
+    for i in ${!temp_command_list[@]}
+    do
+        if ! command -V "${temp_command_list[$i]}" > /dev/null; then
+            red "命令\"${temp_command_list[$i]}\"未找到"
+            red "不是标准的Linux系统"
+            exit 1
+        fi
+    done
+}
+ask_if()
+{
+    local choice=""
+    while [ "$choice" != "y" ] && [ "$choice" != "n" ]
+    do
+        tyblue "$1"
+        read choice
+    done
+    [ $choice == y ] && return 0
+    return 1
+}
+check_base_command
 
 if [[ "$(type -P apt)" ]]; then
     if [[ "$(type -P dnf)" ]] || [[ "$(type -P yum)" ]]; then
@@ -38,6 +64,8 @@ if [ "$EUID" != "0" ]; then
     red "请用root用户运行此脚本！！"
     exit 1
 fi
+
+[[ -d "/proc/vz" ]] && red "Error: Your VPS is based on OpenVZ, which is not supported." && exit 1
 
 menu()
 {
@@ -58,21 +86,14 @@ menu()
     done
     [ $choice -eq 7 ] && exit 0
     local xanmod_list=("-cacule" "-edge" "" "-lts" "-rt-edge" "-rt")
-    install="linux-xanmod${xanmod_list[((choice-1))]}"
+    install="linux-xanmod${xanmod_list[$((choice-1))]}"
 }
 
 check_mem()
 {
-    if [ "$(cat /proc/meminfo | grep 'MemTotal' | awk '{print $3}' | tr [:upper:] [:lower:])" == "kb" ]; then
-        if [ "$(cat /proc/meminfo | grep 'MemTotal' | awk '{print $2}')" -le 400000 ]; then
-            red    "检测到内存过小，更换内核可能无法开机，请谨慎选择"
-            yellow "按回车键以继续或ctrl+c中止"
-            read -s
-            echo
-        fi
-    else
-        red    "请确保服务器的内存>=512MB，否则更换最新版内核可能无法开机"
-        yellow "按回车键继续或ctrl+c中止"
+    if (($(free -m | sed -n 2p | awk '{print $2}')<300)); then
+        red    "检测到内存小于300M，更换内核可能无法开机，请谨慎选择"
+        yellow "按回车键以继续或ctrl+c中止"
         read -s
         echo
     fi
@@ -80,34 +101,35 @@ check_mem()
 
 check_important_dependence_installed()
 {
-    if dpkg -s $1 > /dev/null 2>&1; then
-        apt-mark manual $1
-    else
-        if ! apt -y --no-install-recommends install $1; then
-            apt update
-            if ! apt -y --no-install-recommends install $1; then
-                yellow "重要组件安装失败！！"
-                exit 1
-            fi
+    if dpkg -s "$1" > /dev/null 2>&1; then
+        apt-mark manual "$1"
+    elif ! apt -y --no-install-recommends install "$1"; then
+        apt update
+        if ! apt -y --no-install-recommends install "$1"; then
+            red "重要组件\"$1\"安装失败！！"
+            yellow "按回车键继续或者Ctrl+c退出"
+            read -s
         fi
     fi
 }
 
 remove_other_kernel()
 {
-    yellow "卸载过程中弹出对话框，请选择NO！"
-    yellow "卸载过程中弹出对话框，请选择NO！"
-    yellow "卸载过程中弹出对话框，请选择NO！"
-    tyblue "按回车键继续。。"
+    yellow "卸载过程中如果弹出对话框，请选择NO！"
+    yellow "卸载过程中如果弹出对话框，请选择NO！"
+    yellow "卸载过程中如果弹出对话框，请选择NO！"
+    tyblue "按回车键以继续。。"
     read -s
-    local kernel_list_image=($(dpkg --list | awk '{print $2}' | grep '^linux-image'))
-    local kernel_list_modules=($(dpkg --list | awk '{print $2}' | grep '^linux-modules'))
+    local kernel_list_image
+    kernel_list_image=($(dpkg --list | awk '{print $2}' | grep '^linux-image'))
+    local kernel_list_modules
+    kernel_list_modules=($(dpkg --list | awk '{print $2}' | grep '^linux-modules'))
     local i
     local ok_install=0
     for ((i=${#kernel_list_image[@]}-1;i>=0;i--))
     do
         if [ "${kernel_list_image[$i]}" == "${install_image_list[0]}" ]; then
-            unset kernel_list_image[$i]
+            unset 'kernel_list_image[$i]'
             ((ok_install++))
         fi
     done
@@ -120,7 +142,7 @@ remove_other_kernel()
         for ((i=${#kernel_list_modules[@]}-1;i>=0;i--))
         do
             if [ "${kernel_list_modules[$i]}" == "${install_modules_list[0]}" ]; then
-                unset kernel_list_modules[$i]
+                unset 'kernel_list_modules[$i]'
                 ((ok_install++))
             fi
         done
@@ -129,13 +151,15 @@ remove_other_kernel()
             return 1
         fi
     fi
+    local exit_code=1
     if [ $install_headers -eq 1 ]; then
-        local kernel_list_headers=($(dpkg --list | awk '{print $2}' | grep '^linux-headers'))
+        local kernel_list_headers
+        kernel_list_headers=($(dpkg --list | awk '{print $2}' | grep '^linux-headers'))
         ok_install=0
         for ((i=${#kernel_list_headers[@]}-1;i>=0;i--))
         do
             if [ "${kernel_list_headers[$i]}" == "${install_headers_list[0]}" ]; then
-                unset kernel_list_headers[$i]
+                unset 'kernel_list_headers[$i]'
                 ((ok_install++))
             fi
         done
@@ -143,11 +167,12 @@ remove_other_kernel()
             red "内核可能安装失败！不卸载"
             return 1
         fi
-        apt -y purge ${kernel_list_image[@]} ${kernel_list_modules[@]} ${kernel_list_headers[@]}
+        apt -y purge "${kernel_list_image[@]}" "${kernel_list_modules[@]}" "${kernel_list_headers[@]}" && exit_code=0
     else
-        apt -y purge ${kernel_list_image[@]} ${kernel_list_modules[@]}
+        apt -y purge "${kernel_list_image[@]}" "${kernel_list_modules[@]}" && exit_code=0
     fi
-    update-grub
+    [ $exit_code -ne 0 ] && red "卸载失败！" && exit 1
+    apt-mark manual "^grub"
 }
 
 main()
@@ -155,50 +180,49 @@ main()
     menu
     check_mem
     check_important_dependence_installed gnupg1
-    check_important_dependence_installed grub2-common
-    echo 'deb https://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-kernel.list
-    wget -qO - https://dl.xanmod.org/gpg.key | apt-key --keyring /etc/apt/trusted.gpg.d/xanmod-kernel.gpg add -
-    [ $? -ne 0 ] && red "添加源失败！" && exit 1
-    apt update
-    [ $? -ne 0 ] && red "更新源失败！" && exit 1
-    local temp_list="$(apt show "$install" | grep -i "^Depends:" | cut -d : -f 2)"
-    local temp
+    check_important_dependence_installed wget
+    check_important_dependence_installed ca-certificates
+    echo 'deb http://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-kernel.list
+    if ! wget -qO - https://dl.xanmod.org/gpg.key | apt-key --keyring /etc/apt/trusted.gpg.d/xanmod-kernel.gpg add -; then
+        red "添加源失败！"
+        exit 1
+    fi
+    if ! apt update; then
+        red "更新源失败！"
+        exit 1
+    fi
+    local temp_list
+    temp_list=($(apt-cache depends "$install" | grep -i "Depends:" | awk '{print $2}'))
     local i
-    for ((i=$(echo "$temp_list" | awk -F , '{print NF}');i>0;i--))
+    for i in ${!temp_list[@]}
     do
-        temp="$(echo "$temp_list" | awk -F , "{print \$$i}" | awk '{print $1}')"
-        if [[ "$temp" =~ ^linux-headers-.*-xanmod ]]; then
-            install_headers_list+=("$temp")
-        elif [[ "$temp" =~ ^linux-image-.*-xanmod ]]; then
-            install_image_list+=("$temp")
-        elif [[ "$temp" =~ ^linux-modules-.*-xanmod ]]; then
-            install_modules_list+=("$temp")
+        if [[ "${temp_list[$i]}" =~ ^linux-headers-.*-xanmod ]]; then
+            install_headers_list+=("${temp_list[$i]}")
+        elif [[ "${temp_list[$i]}" =~ ^linux-image-.*-xanmod ]]; then
+            install_image_list+=("${temp_list[$i]}")
+        elif [[ "${temp_list[$i]}" =~ ^linux-modules-.*-xanmod ]]; then
+            install_modules_list+=("${temp_list[$i]}")
         fi
     done
     if [ ${#install_image_list[@]} -ne 1 ] || [ ${#install_modules_list[@]} -gt 1 ] || ([ $install_headers -eq 1 ] && [ ${#install_headers_list[@]} -ne 1 ]); then
         red "获取版本异常"
         exit 1
     fi
+    local exit_code=1
     if [ $install_headers -eq 0 ]; then
-        apt -y --no-install-recommends install ${install_image_list[@]} ${install_modules_list[@]}
+        apt -y --no-install-recommends install "${install_image_list[@]}" "${install_modules_list[@]}" && exit_code=0
     else
-        apt -y --no-install-recommends install ${install_image_list[@]} ${install_modules_list[@]} ${install_headers_list[@]}
+        apt -y --no-install-recommends install "${install_image_list[@]}" "${install_modules_list[@]}" "${install_headers_list[@]}" && exit_code=0
     fi
-    [ $? -ne 0 ] && red "安装失败！" && exit 1
-    choice=""
-    while [ "$choice" != "y" -a "$choice" != "n" ]
-    do
-        read -p "是否卸载其它内核？(y/n)" choice
-    done
-    [ $choice == y ] && remove_other_kernel
+    [ $exit_code -ne 0 ] && red "安装失败！" && exit 1
+    ask_if "是否卸载其它内核？(y/n)" && remove_other_kernel
     green "安装完成"
     yellow "系统需要重启"
-    choice=""
-    while [[ "$choice" != "y" && "$choice" != "n" ]]
-    do
-        read -p "现在重启系统? [y/n]" choice
-    done
-    ([ $choice == y ] && reboot) || yellow "请尽快重启！"
+    if ask_if "现在重启系统? (y/n)"; then
+        reboot
+    else
+        yellow "请尽快重启！"
+    fi
 }
 
 main
