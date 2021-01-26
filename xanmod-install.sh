@@ -180,6 +180,7 @@ main()
     menu
     check_mem
     check_important_dependence_installed gnupg1
+    check_important_dependence_installed wget
     check_important_dependence_installed ca-certificates
     echo 'deb http://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-kernel.list
     if ! wget -qO - https://dl.xanmod.org/gpg.key | apt-key --keyring /etc/apt/trusted.gpg.d/xanmod-kernel.gpg add -; then
