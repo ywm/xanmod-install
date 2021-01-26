@@ -71,8 +71,8 @@ menu()
 {
     tyblue "===============安装xanmod内核==============="
     tyblue " 请选择你想安装的版本："
-    green  "   1.EDGE(推荐)"
-    green  "   2.CACULE(推荐)"
+    green  "   1.CACULE(推荐)"
+    green  "   2.EDGE(推荐)"
     tyblue "   3.STABLE(推荐)"
     tyblue "   4.LTS"
     tyblue "   5.RT-EDGE"
@@ -85,7 +85,7 @@ menu()
         read -p "您的选择是：" choice
     done
     [ $choice -eq 7 ] && exit 0
-    local xanmod_list=("-edge" "-cacule" "" "-lts" "-rt-edge" "-rt")
+    local xanmod_list=("-cacule" "-edge" "" "-lts" "-rt-edge" "-rt")
     install="linux-xanmod${xanmod_list[$((choice-1))]}"
 }
 
@@ -103,13 +103,12 @@ check_important_dependence_installed()
 {
     if dpkg -s "$1" > /dev/null 2>&1; then
         apt-mark manual "$1"
-    else
+    elif ! apt -y --no-install-recommends install "$1"; then
+        apt update
         if ! apt -y --no-install-recommends install "$1"; then
-            apt update
-            if ! apt -y --no-install-recommends install "$1"; then
-                yellow "重要组件安装失败！！"
-                exit 1
-            fi
+            red "重要组件\"$1\"安装失败！！"
+            yellow "按回车键继续或者Ctrl+c退出"
+            read -s
         fi
     fi
 }
@@ -181,7 +180,7 @@ main()
     menu
     check_mem
     check_important_dependence_installed gnupg1
-    check_important_dependence_installed ca-certificates ca-certificates
+    check_important_dependence_installed ca-certificates
     echo 'deb http://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-kernel.list
     if ! wget -qO - https://dl.xanmod.org/gpg.key | apt-key --keyring /etc/apt/trusted.gpg.d/xanmod-kernel.gpg add -; then
         red "添加源失败！"
