@@ -235,8 +235,8 @@ main()
         apt -y --no-install-recommends install "${install_image_list[@]}" "${install_modules_list[@]}" "${install_headers_list[@]}" && exit_code=0
     fi
     [ $exit_code -ne 0 ] && red "安装失败！" && exit 1
-    ask_if "是否卸载其它内核？(y/n)" && remove_other_kernel
     green "安装完成"
+    ask_if "是否卸载其它内核？(y/n)" && remove_other_kernel
     yellow "系统需要重启"
     if ask_if "现在重启系统? (y/n)"; then
         reboot
