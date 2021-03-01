@@ -10,7 +10,7 @@ tyblue()                           #天依蓝
 {
     echo -e "\\033[36;1m${*}\\033[0m"
 }
-green()                            #水鸭青
+green()                            #原谅绿
 {
     echo -e "\\033[32;1m${*}\\033[0m"
 }
@@ -21,6 +21,10 @@ yellow()                           #鸭屎黄
 red()                              #姨妈红
 {
     echo -e "\\033[31;1m${*}\\033[0m"
+}
+blue()                             #蓝色
+{
+    echo -e "\\033[34;1m${*}\\033[0m"
 }
 #检查基本命令
 check_base_command()
@@ -115,15 +119,16 @@ check_important_dependence_installed()
 
 remove_other_kernel()
 {
-    yellow "卸载过程中如果弹出对话框，请选择NO！"
-    yellow "卸载过程中如果弹出对话框，请选择NO！"
-    yellow "卸载过程中如果弹出对话框，请选择NO！"
-    tyblue "按回车键以继续。。"
-    read -s
+    local temp_file
+    temp_file="$(mktemp)"
+    dpkg --list > "$temp_file"
+    local kernel_list_headers
+    kernel_list_headers=($(awk '{print $2}' "$temp_file" | grep '^linux-headers'))
     local kernel_list_image
-    kernel_list_image=($(dpkg --list | awk '{print $2}' | grep '^linux-image'))
+    kernel_list_image=($(awk '{print $2}' "$temp_file" | grep '^linux-image'))
     local kernel_list_modules
-    kernel_list_modules=($(dpkg --list | awk '{print $2}' | grep '^linux-modules'))
+    kernel_list_modules=($(awk '{print $2}' "$temp_file" | grep '^linux-modules'))
+    rm "$temp_file"
     local i
     local ok_install=0
     for ((i=${#kernel_list_image[@]}-1;i>=0;i--))
@@ -151,10 +156,7 @@ remove_other_kernel()
             return 1
         fi
     fi
-    local exit_code=1
     if [ $install_headers -eq 1 ]; then
-        local kernel_list_headers
-        kernel_list_headers=($(dpkg --list | awk '{print $2}' | grep '^linux-headers'))
         ok_install=0
         for ((i=${#kernel_list_headers[@]}-1;i>=0;i--))
         do
@@ -167,12 +169,30 @@ remove_other_kernel()
             red "内核可能安装失败！不卸载"
             return 1
         fi
+    fi
+    if [ ${#kernel_list_image[@]} -eq 0 ] && [ ${#kernel_list_modules[@]} -eq 0 ] && ([ $install_headers -eq 0 ] || [ ${#kernel_list_headers[@]} -eq 0 ]); then
+        red "未发现可卸载内核！不卸载"
+        return 1
+    fi
+    yellow "卸载过程中如果弹出对话框，请选择NO！"
+    yellow "卸载过程中如果弹出对话框，请选择NO！"
+    yellow "卸载过程中如果弹出对话框，请选择NO！"
+    tyblue "按回车键以继续。。"
+    read -s
+    local exit_code=1
+    if [ $install_headers -eq 1 ]; then
         apt -y purge "${kernel_list_image[@]}" "${kernel_list_modules[@]}" "${kernel_list_headers[@]}" && exit_code=0
     else
         apt -y purge "${kernel_list_image[@]}" "${kernel_list_modules[@]}" && exit_code=0
     fi
-    [ $exit_code -ne 0 ] && red "卸载失败！" && exit 1
-    apt-mark manual "^grub"
+    if [ $exit_code -eq 0 ]; then
+        apt-mark manual "^grub"
+        green "卸载完成"
+    else
+        apt -y -f install
+        apt-mark manual "^grub"
+        red "卸载失败！"
+    fi
 }
 
 main()
