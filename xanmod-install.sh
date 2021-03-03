@@ -202,6 +202,8 @@ main()
     check_important_dependence_installed gnupg1
     check_important_dependence_installed wget
     check_important_dependence_installed ca-certificates
+    local temp_xanmod_apt_source=0
+    [[ -f '/etc/apt/sources.list.d/xanmod-kernel.list' ]] && temp_xanmod_apt_source=1
     echo 'deb http://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-kernel.list
     if ! wget -qO - https://dl.xanmod.org/gpg.key | apt-key --keyring /etc/apt/trusted.gpg.d/xanmod-kernel.gpg add -; then
         red "添加源失败！"
@@ -234,7 +236,15 @@ main()
     else
         apt -y --no-install-recommends install "${install_image_list[@]}" "${install_modules_list[@]}" "${install_headers_list[@]}" && exit_code=0
     fi
-    [ $exit_code -ne 0 ] && red "安装失败！" && exit 1
+    [ $exit_code -ne 0 ] && apt -y -f install
+    if [ $temp_xanmod_apt_source -eq 0 ]; then
+        rm /etc/apt/sources.list.d/xanmod-kernel.list
+        apt update
+    fi
+    if [ $exit_code -ne 0 ]; then
+        red "安装失败！"
+        exit 1
+    fi
     green "安装完成"
     ask_if "是否卸载其它内核？(y/n)" && remove_other_kernel
     yellow "系统需要重启"
