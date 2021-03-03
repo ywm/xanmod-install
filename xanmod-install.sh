@@ -30,7 +30,7 @@ blue()                             #蓝色
 check_base_command()
 {
     local i
-    local temp_command_list=('bash' 'true' 'false' 'exit' 'echo' 'test' 'free' 'sort' 'sed' 'awk' 'grep' 'cut' 'cd' 'rm' 'cp' 'mv' 'head' 'tail' 'uname' 'tr' 'md5sum' 'tar' 'cat' 'find' 'type' 'command' 'kill' 'pkill' 'wc' 'ls')
+    local temp_command_list=('bash' 'true' 'false' 'exit' 'echo' 'test' 'free' 'sort' 'sed' 'awk' 'grep' 'cut' 'cd' 'rm' 'cp' 'mv' 'head' 'tail' 'uname' 'tr' 'md5sum' 'tar' 'cat' 'find' 'type' 'command' 'kill' 'pkill' 'wc' 'ls' 'mktemp')
     for i in ${!temp_command_list[@]}
     do
         if ! command -V "${temp_command_list[$i]}" > /dev/null; then
@@ -39,6 +39,24 @@ check_base_command()
             exit 1
         fi
     done
+}
+check_important_dependence_installed()
+{
+    local temp_exit_code=1
+    if dpkg -s "$1" > /dev/null 2>&1; then
+        apt-mark manual "$1" && temp_exit_code=0
+    elif apt -y --no-install-recommends install "$1"; then
+        temp_exit_code=0
+    else
+        apt update
+        apt -y -f install
+        apt -y --no-install-recommends install "$1" && temp_exit_code=0
+    fi
+    if [ $temp_exit_code -ne 0 ]; then
+        red "重要组件\"$1\"安装失败！！"
+        yellow "按回车键继续或者Ctrl+c退出"
+        read -s
+    fi
 }
 ask_if()
 {
@@ -51,8 +69,12 @@ ask_if()
     [ $choice == y ] && return 0
     return 1
 }
-check_base_command
 
+if [[ -d "/proc/vz" ]]; then
+    red "Error: Your VPS is based on OpenVZ, which is not supported."
+    exit 1
+fi
+check_base_command
 if [[ "$(type -P apt)" ]]; then
     if [[ "$(type -P dnf)" ]] || [[ "$(type -P yum)" ]]; then
         red "同时存在apt和yum/dnf"
@@ -63,13 +85,10 @@ else
     red "xanmod内核仅支持Debian系的系统，如Ubuntu,Debian,deepin,UOS"
     exit 1
 fi
-
 if [ "$EUID" != "0" ]; then
     red "请用root用户运行此脚本！！"
     exit 1
 fi
-
-[[ -d "/proc/vz" ]] && red "Error: Your VPS is based on OpenVZ, which is not supported." && exit 1
 
 menu()
 {
@@ -100,20 +119,6 @@ check_mem()
         yellow "按回车键以继续或ctrl+c中止"
         read -s
         echo
-    fi
-}
-
-check_important_dependence_installed()
-{
-    if dpkg -s "$1" > /dev/null 2>&1; then
-        apt-mark manual "$1"
-    elif ! apt -y --no-install-recommends install "$1"; then
-        apt update
-        if ! apt -y --no-install-recommends install "$1"; then
-            red "重要组件\"$1\"安装失败！！"
-            yellow "按回车键继续或者Ctrl+c退出"
-            read -s
-        fi
     fi
 }
 
