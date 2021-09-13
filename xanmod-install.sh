@@ -219,7 +219,7 @@ main()
         exit 1
     fi
     local temp_list
-    temp_list=($(apt-cache depends "$install" | grep -i "Depends:" | awk '{print $2}'))
+    temp_list=($(LANG="en_US.UTF-8" LANGUAGE="en_US:en" apt-cache depends "$install" | grep -i "Depends:" | awk '{print $2}'))
     local i
     for i in ${!temp_list[@]}
     do
