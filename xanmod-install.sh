@@ -30,7 +30,7 @@ blue()                             #蓝色
 check_base_command()
 {
     local i
-    local temp_command_list=('bash' 'true' 'false' 'exit' 'echo' 'test' 'free' 'sort' 'sed' 'awk' 'grep' 'cut' 'cd' 'rm' 'cp' 'mv' 'head' 'tail' 'uname' 'tr' 'md5sum' 'tar' 'cat' 'find' 'type' 'command' 'kill' 'pkill' 'wc' 'ls' 'mktemp')
+    local temp_command_list=('bash' 'true' 'false' 'exit' 'echo' 'test' 'sort' 'sed' 'awk' 'grep' 'cut' 'cd' 'rm' 'cp' 'mv' 'head' 'tail' 'uname' 'tr' 'md5sum' 'cat' 'find' 'type' 'command' 'wc' 'ls' 'mktemp' 'swapon' 'swapoff' 'mkswap' 'chmod' 'chown' 'export')
     for i in ${!temp_command_list[@]}
     do
         if ! command -V "${temp_command_list[$i]}" > /dev/null; then
@@ -40,11 +40,19 @@ check_base_command()
         fi
     done
 }
-check_important_dependence_installed()
+#安装单个重要依赖
+test_important_dependence_installed()
 {
     local temp_exit_code=1
-    if dpkg -s "$1" > /dev/null 2>&1; then
-        apt-mark manual "$1" && temp_exit_code=0
+    if LANG="en_US.UTF-8" LANGUAGE="en_US:en" dpkg -s "$1" 2>/dev/null | grep -qi 'status[ '$'\t]*:[ '$'\t]*install[ '$'\t]*ok[ '$'\t]*installed[ '$'\t]*$'; then
+        if LANG="en_US.UTF-8" LANGUAGE="en_US:en" apt-mark manual "$1" | grep -qi 'set[ '$'\t]*to[ '$'\t]*manually[ '$'\t]*installed'; then
+            temp_exit_code=0
+        else
+            red "安装依赖 \"$1\" 出错！"
+            green  "欢迎进行Bug report(https://github.com/kirin10000/Xray-script/issues)，感谢您的支持"
+            yellow "按回车键继续或者Ctrl+c退出"
+            read -s
+        fi
     elif apt -y --no-install-recommends install "$1"; then
         temp_exit_code=0
     else
@@ -52,7 +60,11 @@ check_important_dependence_installed()
         apt -y -f install
         apt -y --no-install-recommends install "$1" && temp_exit_code=0
     fi
-    if [ $temp_exit_code -ne 0 ]; then
+    return $temp_exit_code
+}
+check_important_dependence_installed()
+{
+    if ! test_important_dependence_installed "$@"; then
         red "重要组件\"$1\"安装失败！！"
         yellow "按回车键继续或者Ctrl+c退出"
         read -s
@@ -203,10 +215,12 @@ remove_other_kernel()
 main()
 {
     menu
+    check_important_dependence_installed procps
     check_mem
     check_important_dependence_installed gnupg1
     check_important_dependence_installed wget
     check_important_dependence_installed ca-certificates
+    check_important_dependence_installed initramfs-tools
     local temp_xanmod_apt_source=0
     [[ -f '/etc/apt/sources.list.d/xanmod-kernel.list' ]] && temp_xanmod_apt_source=1
     echo 'deb http://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-kernel.list
