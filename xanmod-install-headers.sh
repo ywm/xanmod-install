@@ -106,21 +106,21 @@ menu()
 {
     tyblue "===============安装xanmod内核==============="
     tyblue " 请选择你想安装的版本："
-    green  "   1.CACULE(推荐)"
+    green  "   1.TT(推荐)"
     green  "   2.EDGE(推荐)"
     tyblue "   3.STABLE(推荐)"
-    tyblue "   4.LTS"
-    tyblue "   5.RT-EDGE"
-    tyblue "   6.RT-STABLE"
+    tyblue "   4.RT-EDGE"
+    tyblue "   5.RT"
+    tyblue "   6.LTS"
     red    "   7.不安装"
     echo
     local choice=""
-    while [[ "$choice" != "1" && "$choice" != "2" && "$choice" != "3" && "$choice" != "4" && "$choice" != "5" && "$choice" != "6" && "$choice" != "7" ]]
+    while [[ ! "$choice" =~ ^([1-9][0-9]*)$ ]] || ((choice>7))
     do
         read -p "您的选择是：" choice
     done
     [ $choice -eq 7 ] && exit 0
-    local xanmod_list=("-cacule" "-edge" "" "-lts" "-rt-edge" "-rt")
+    local xanmod_list=("-tt" "-edge" "" "-rt-edge" "-rt" "-lts")
     install="linux-xanmod${xanmod_list[$((choice-1))]}"
 }
 
