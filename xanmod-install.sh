@@ -106,9 +106,9 @@ menu()
 {
     tyblue "===============安装xanmod内核==============="
     tyblue " 请选择你想安装的版本："
-    green  "   1.TT(推荐)"
-    green  "   2.EDGE(推荐)"
-    tyblue "   3.STABLE(推荐)"
+    green  "   1.EDGE(推荐)"
+    green  "   2.STABLE(推荐)"
+    tyblue "   3.TT"
     tyblue "   4.RT-EDGE"
     tyblue "   5.RT"
     tyblue "   6.LTS"
@@ -120,7 +120,7 @@ menu()
         read -p "您的选择是：" choice
     done
     [ $choice -eq 7 ] && exit 0
-    local xanmod_list=("-tt" "-edge" "" "-rt-edge" "-rt" "-lts")
+    local xanmod_list=("-edge" "" "-tt" "-rt-edge" "-rt" "-lts")
     install="linux-xanmod${xanmod_list[$((choice-1))]}"
 }
 
@@ -191,9 +191,9 @@ remove_other_kernel()
         red "未发现可卸载内核！不卸载"
         return 1
     fi
-    yellow "卸载过程中如果弹出对话框，请选择NO！"
-    yellow "卸载过程中如果弹出对话框，请选择NO！"
-    yellow "卸载过程中如果弹出对话框，请选择NO！"
+    yellow "卸载过程中如果询问YES/NO，请选择NO！"
+    yellow "卸载过程中如果询问YES/NO，请选择NO！"
+    yellow "卸载过程中如果询问YES/NO，请选择NO！"
     tyblue "按回车键以继续。。"
     read -s
     local exit_code=1
