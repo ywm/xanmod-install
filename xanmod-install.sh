@@ -234,10 +234,12 @@ main()
     fi
     local temp_list
     temp_list=($(LANG="en_US.UTF-8" LANGUAGE="en_US:en" apt-cache depends "$install" | grep -i "Depends:" | awk '{print $2}'))
+    red "这里是查看位"
+    red "$temp_list"
     local i
     for i in ${!temp_list[@]}
     do
-        red ${temp_list[$i]}
+        red "${temp_list[$i]}"
         if [[ "${temp_list[$i]}" =~ ^linux-headers-.*-xanmod ]]; then
             install_headers_list+=("${temp_list[$i]}")
         elif [[ "${temp_list[$i]}" =~ ^linux-image-.*-xanmod ]]; then
@@ -246,10 +248,10 @@ main()
             install_modules_list+=("${temp_list[$i]}")
         fi
     done
-    green ${#install_image_list[@]}
-    green ${#install_modules_list[@]}
-    green $install_headers
-    green ${#install_headers_list[@]}
+    green "${#install_image_list[@]}"
+    green "${#install_modules_list[@]}"
+    green "$install_headers"
+    green "${#install_headers_list[@]}"
     if [ ${#install_image_list[@]} -ne 1 ] || [ ${#install_modules_list[@]} -gt 1 ] || ([ $install_headers -eq 1 ] && [ ${#install_headers_list[@]} -ne 1 ]); then
         red "获取版本异常"
         exit 1
