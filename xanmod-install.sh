@@ -234,6 +234,7 @@ main()
         exit 1
     fi
     local temp_list
+    install = "linux-xanmod-edge-x64v3"
     red "$install"
     temp_list=($(LANG="en_US.UTF-8" LANGUAGE="en_US:en" apt-cache depends "$install" | grep -i "Depends:" | awk '{print $2}'))
     red "这里是查看位"
