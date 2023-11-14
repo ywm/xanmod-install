@@ -237,6 +237,7 @@ main()
     local i
     for i in ${!temp_list[@]}
     do
+        red ${temp_list[$i]}
         if [[ "${temp_list[$i]}" =~ ^linux-headers-.*-xanmod ]]; then
             install_headers_list+=("${temp_list[$i]}")
         elif [[ "${temp_list[$i]}" =~ ^linux-image-.*-xanmod ]]; then
