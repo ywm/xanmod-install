@@ -245,6 +245,10 @@ main()
             install_modules_list+=("${temp_list[$i]}")
         fi
     done
+    green ${#install_image_list[@]}
+    green ${#install_modules_list[@]}
+    green $install_headers
+    green ${#install_headers_list[@]}
     if [ ${#install_image_list[@]} -ne 1 ] || [ ${#install_modules_list[@]} -gt 1 ] || ([ $install_headers -eq 1 ] && [ ${#install_headers_list[@]} -ne 1 ]); then
         red "获取版本异常"
         exit 1
