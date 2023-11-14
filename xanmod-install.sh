@@ -122,7 +122,7 @@ menu()
     [ $choice -eq 7 ] && exit 0
     local xanmod_list=("-edge" "" "-tt" "-rt-edge" "-rt" "-lts")
     install="linux-xanmod${xanmod_list[$((choice-1))]}"
-    red "$install"
+    red "111$install"
 }
 
 check_mem()
