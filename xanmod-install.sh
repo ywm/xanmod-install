@@ -1,5 +1,6 @@
 #!/bin/bash
 install_headers=0
+cpu_version="v3"
 
 #定义几个颜色
 purple()                           #基佬紫
@@ -102,6 +103,24 @@ if [ "$EUID" != "0" ]; then
     exit 1
 fi
 
+check_cpu()
+{
+    tyblue "===============安装xanmod内核==============="
+    tyblue " 查询cpu版本"
+    rm check_x86-64_psabi.sh
+    wget https://dl.xanmod.org/check_x86-64_psabi.sh
+    chmod +x check_x86-64_psabi.sh
+    output=$(./check_x86-64_psabi.sh)
+    echo "获取到的cpu版本"
+    echo $output
+    version=$(echo "$output" | grep -oP 'x86-64-v\K\d+')
+    echo "x64v$version"
+    cpu_version="x64v$version"
+    echo "show need get cpu version $cpu_version"
+
+}
+
+
 menu()
 {
     tyblue "===============安装xanmod内核==============="
@@ -122,7 +141,7 @@ menu()
     [ $choice -eq 7 ] && exit 0
     local xanmod_list=("-edge" "" "-tt" "-rt-edge" "-rt" "-lts")
     install="linux-xanmod${xanmod_list[$((choice-1))]}"
-    red "111$install"
+    red "$install"
 }
 
 check_mem()
@@ -222,6 +241,8 @@ main()
     check_important_dependence_installed wget
     check_important_dependence_installed ca-certificates
     check_important_dependence_installed initramfs-tools
+    check_cpu
+    install="$install-$cpu_version"
     local temp_xanmod_apt_source=0
     [[ -f '/etc/apt/sources.list.d/xanmod-kernel.list' ]] && temp_xanmod_apt_source=1
     echo 'deb http://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-kernel.list
@@ -234,9 +255,8 @@ main()
         exit 1
     fi
     local temp_list
-    install = "linux-xanmod-edge-x64v3"
     red "$install"
-    temp_list=($(LANG="en_US.UTF-8" LANGUAGE="en_US:en" apt-cache depends linux-xanmod-edge-x64v3 | grep -i "Depends:" | awk '{print $2}'))
+    temp_list=($(LANG="en_US.UTF-8" LANGUAGE="en_US:en" apt-cache depends "$install" | grep -i "Depends:" | awk '{print $2}'))
     red "这里是查看位"
     red "$temp_list"
     local i
