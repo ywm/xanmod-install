@@ -223,7 +223,13 @@ main()
     check_important_dependence_installed initramfs-tools
     local temp_xanmod_apt_source=0
     [[ -f '/etc/apt/sources.list.d/xanmod-kernel.list' ]] && temp_xanmod_apt_source=1
-    echo 'deb http://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-kernel.list
+    local codename
+    codename=$(lsb_release -sc 2>/dev/null)
+    if [ -z "$codename" ] && [ -f /etc/os-release ]; then
+        codename=$(. /etc/os-release && echo "$VERSION_CODENAME")
+    fi
+    [ -z "$codename" ] && codename="releases"
+    echo "deb http://deb.xanmod.org ${codename} main" | tee /etc/apt/sources.list.d/xanmod-kernel.list
     if ! wget -qO - https://dl.xanmod.org/gpg.key | apt-key --keyring /etc/apt/trusted.gpg.d/xanmod-kernel.gpg add -; then
         red "添加源失败！"
         exit 1
