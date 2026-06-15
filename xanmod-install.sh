@@ -205,7 +205,14 @@ configure_xanmod_source() {
     fi
 
     # 添加软件源
-    if ! echo 'deb [signed-by=/etc/apt/keyrings/xanmod-archive-keyring.gpg] http://deb.xanmod.org releases main' | sudo tee /etc/apt/sources.list.d/xanmod-release.list; then
+    local codename
+    codename=$(lsb_release -sc 2>/dev/null)
+    if [ -z "$codename" ] && [ -f /etc/os-release ]; then
+        codename=$(. /etc/os-release && echo "$VERSION_CODENAME")
+    fi
+    [ -z "$codename" ] && codename="releases"
+
+    if ! echo "deb [signed-by=/etc/apt/keyrings/xanmod-archive-keyring.gpg] http://deb.xanmod.org ${codename} main" | sudo tee /etc/apt/sources.list.d/xanmod-release.list; then
         log_and_show "添加源失败！"
         exit 1
     fi
