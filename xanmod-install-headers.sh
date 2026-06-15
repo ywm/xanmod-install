@@ -228,7 +228,23 @@ main()
     if [ -z "$codename" ] && [ -f /etc/os-release ]; then
         codename=$(. /etc/os-release && echo "$VERSION_CODENAME")
     fi
-    [ -z "$codename" ] && codename="releases"
+
+    # 映射不支持的旧版本代号到最新支持的版本代号（内核包不依赖 glibc，可安全使用）
+    if [ "$codename" = "jammy" ] || [ "$codename" = "focal" ]; then
+        codename="noble"
+    elif [ "$codename" = "bullseye" ] || [ "$codename" = "buster" ]; then
+        codename="bookworm"
+    fi
+
+    # 安全回退：如果代号不在 XanMod 官方支持列表，则根据发行版决定默认使用 noble 或 bookworm
+    if [ -z "$codename" ] || { [ "$codename" != "bookworm" ] && [ "$codename" != "trixie" ] && [ "$codename" != "forky" ] && [ "$codename" != "sid" ] && [ "$codename" != "noble" ] && [ "$codename" != "plucky" ] && [ "$codename" != "questing" ] && [ "$codename" != "resolute" ] && [ "$codename" != "stonking" ] && [ "$codename" != "faye" ] && [ "$codename" != "gigi" ] && [ "$codename" != "wilma" ] && [ "$codename" != "xia" ] && [ "$codename" != "zara" ] && [ "$codename" != "zena" ]; }; then
+        if grep -q -i "ubuntu" /etc/os-release 2>/dev/null; then
+            codename="noble"
+        else
+            codename="bookworm"
+        fi
+    fi
+
     echo "deb http://deb.xanmod.org ${codename} main" | tee /etc/apt/sources.list.d/xanmod-kernel.list
     if ! wget -qO - https://dl.xanmod.org/gpg.key | apt-key --keyring /etc/apt/trusted.gpg.d/xanmod-kernel.gpg add -; then
         red "添加源失败！"
