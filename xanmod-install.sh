@@ -1,4 +1,4 @@
-!/bin/bash
+#!/bin/bash
 
 # 定义全局变量
 install_headers=0
